@@ -1,0 +1,837 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider = "mysql"
+  url = env("DATABASE_URL")
+}
+
+model Announcement {
+  id         Int      @id @default(autoincrement())
+  priority   Int
+  title      String
+  text       String
+  mediaPath  String?
+  mediaName  String?
+  companyId  Int
+  status     Boolean
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  company    Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+}
+
+model Baileys {
+  id         Int      @id @default(autoincrement())
+  contacts   String?
+  chats      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  whatsappId Int
+
+  whatsapp   Whatsapp @relation(fields: [whatsappId], references: [id])
+
+  @@index([whatsappId])
+}
+
+model BaileysChats {
+  id                    Int      @id @default(autoincrement())
+  jid                   String
+  conversationTimestamp Int
+  unreadCount           Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  whatsappId            Int
+
+  whatsapp              Whatsapp @relation(fields: [whatsappId], references: [id])
+
+  @@index([whatsappId])
+}
+
+model Campaign {
+  id                    Int              @id @default(autoincrement())
+  name                  String
+  message1              String           @default("")
+  message2              String           @default("")
+  message3              String           @default("")
+  message4              String           @default("")
+  message5              String           @default("")
+  confirmationMessage1  String           @default("")
+  confirmationMessage2  String           @default("")
+  confirmationMessage3  String           @default("")
+  confirmationMessage4  String           @default("")
+  confirmationMessage5  String           @default("")
+  status                String           @default("INATIVA") // INATIVA, PROGRAMADA, EM_ANDAMENTO, CANCELADA, FINALIZADA
+  confirmation          Boolean
+  mediaPath             String
+  mediaName             String
+  scheduledAt           DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  companyId             Int
+  contactListId         Int?
+  whatsappId            Int?
+  fileListId            Int
+
+  company               Company          @relation(fields: [companyId], references: [id])
+  contactList           ContactList?     @relation(fields: [contactListId], references: [id])
+  whatsapp              Whatsapp?        @relation(fields: [whatsappId], references: [id])
+  fileList              Files            @relation(fields: [fileListId], references: [id])
+
+  shipping              CampaignShipping[]
+
+  @@index([companyId])
+  @@index([contactListId])
+  @@index([whatsappId])
+  @@index([fileListId])
+}
+
+model CampaignSetting {
+  id         Int      @id @default(autoincrement())
+  key        String
+  value      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  companyId  Int
+  company    Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+}
+
+model CampaignShipping {
+  id                       Int            @id @default(autoincrement())
+  jobId                    String
+  number                   String
+  message                  String
+  confirmationMessage      String
+  confirmation             Boolean
+  contactId                Int
+  campaignId               Int
+  confirmationRequestedAt  DateTime?
+  confirmedAt              DateTime?
+  deliveredAt              DateTime?
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+
+  contact                  ContactListItem @relation(fields: [contactId], references: [id])
+  campaign                 Campaign        @relation(fields: [campaignId], references: [id])
+
+  @@unique([contactId, campaignId])
+}
+
+model Chat {
+  id           Int           @id @default(autoincrement())
+  uuid         String        @default(uuid())
+  title        String        @default("")
+  ownerId      Int
+  lastMessage  String        @default("")
+  companyId    Int
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  company      Company       @relation(fields: [companyId], references: [id])
+  owner        User          @relation(fields: [ownerId], references: [id])
+  users        ChatUser[]
+  messages     ChatMessage[]
+
+  @@index([companyId])
+  @@index([ownerId])
+}
+
+model ChatMessage {
+  id          Int       @id @default(autoincrement())
+  chatId      Int
+  senderId    Int
+  message     String    @default("")
+  mediaPath   String?
+  mediaName   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  chat        Chat      @relation(fields: [chatId], references: [id])
+  sender      User      @relation(fields: [senderId], references: [id])
+
+  @@index([chatId])
+  @@index([senderId])
+}
+
+model ChatUser {
+  id         Int      @id @default(autoincrement())
+  chatId     Int
+  userId     Int
+  unreads    Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  chat       Chat     @relation(fields: [chatId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([chatId])
+  @@index([userId])
+}
+
+model Company {
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  phone               String
+  email               String
+  status              Boolean
+  dueDate             DateTime
+  recurrence          String
+  schedules           Schedule[]
+  planId              Int
+  plan                Plan                  @relation(fields: [planId], references: [id])
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  users               User[]
+  userRatings         UserRating[]
+  queues              Queue[]               @relation("QueueCompany")
+  whatsapps           Whatsapp[]
+  messages            Message[]
+  contacts            Contact[]
+  settings            Setting[]
+  tags                Tag[]
+  tickets             Ticket[]
+  ticketTrackings     TicketTracking[]
+  subscriptions       Subscription[]
+  quickMessages       QuickMessage[]
+  queueIntegrationss  QueueIntegrations[]
+  prompts             Prompt[]
+  filess              Files[]
+  contactListItems    ContactListItem[]
+  contactLists        ContactList[]
+  chats               Chat[]
+  campaignSettings    CampaignSetting[]
+  campaigns           Campaign[]
+  announcements       Announcement[]
+  queue               Queue[]
+  ratings             Rating[]
+  @@index([planId])
+}
+
+model Contact {
+  id            Int               @id @default(autoincrement())
+  name          String
+  number        String            @unique
+  email         String            @default("")
+  profilePicUrl String            @default("")
+  isGroup       Boolean           @default(false)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  companyId     Int
+  whatsappId    Int?
+
+  company       Company           @relation(fields: [companyId], references: [id])
+  whatsapp      Whatsapp?         @relation(fields: [whatsappId], references: [id])
+  tickets       Ticket[]
+  extraInfo     ContactCustomField[]
+  schedules     Schedule[]
+
+  @@index([companyId])
+  @@index([whatsappId])
+  TicketNote TicketNote[]
+  Message Message[]
+}
+
+model ContactCustomField {
+  id        Int      @id @default(autoincrement())
+  name      String
+  value     String
+  contactId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contact   Contact  @relation(fields: [contactId], references: [id])
+
+  @@index([contactId])
+}
+
+model ContactList {
+  id        Int                @id @default(autoincrement())
+  name      String
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  companyId Int
+
+  company   Company            @relation(fields: [companyId], references: [id])
+  items     ContactListItem[]
+
+  @@index([companyId])
+  Campaign Campaign[]
+}
+
+model ContactListItem {
+  id              Int         @id @default(autoincrement())
+  name            String
+  number          String
+  email           String     @default("")
+  isWhatsappValid Boolean?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  companyId       Int
+  contactListId   Int
+
+  company         Company    @relation(fields: [companyId], references: [id])
+  contactList     ContactList @relation(fields: [contactListId], references: [id])
+  CampaignShipping CampaignShipping[]
+
+  @@index([companyId])
+  @@index([contactListId])
+}
+
+model Files {
+  id        Int          @id @default(autoincrement())
+  name      String
+  message   String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  companyId Int
+
+  company   Company      @relation(fields: [companyId], references: [id])
+  options   FilesOptions[]
+
+  @@index([companyId])
+  Campaign Campaign[]
+}
+
+model FilesOptions {
+  id        Int      @id @default(autoincrement())
+  name      String
+  path      String
+  mediaType String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  fileId    Int
+
+  file      Files    @relation(fields: [fileId], references: [id])
+
+  @@index([fileId])
+}
+
+model Help {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  video       String
+  link        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Invoice {
+  id        Int      @id @default(autoincrement())
+  detail    String
+  status    String
+  value     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  dueDate   String
+  companyId Int
+
+  @@index([companyId])
+}
+
+model System_Logs {
+  id          Int      @id @default(autoincrement())
+  level       String
+  message     String
+  createdAt   DateTime @default(now())
+
+  actionLogId Int?
+  actionLog   Action_Logs?  @relation(fields: [actionLogId], references: [id])
+}
+
+model Action_Logs {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  ticketId    Int?
+  action      String
+  message     String?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id])
+  ticket      Ticket?   @relation(fields: [ticketId], references: [id])
+
+  System_Logs System_Logs[]
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  remoteJid   String
+  participant String
+  dataJson    String
+  ack         Int      @default(0)
+  read        Boolean  @default(false)
+  fromMe      Boolean  @default(false)
+  body        String   @db.Text
+  mediaUrl    String?
+  mediaType   String
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.DateTime(6)
+  updatedAt   DateTime @updatedAt @db.DateTime(6)
+  quotedMsgId String?
+  ticketId    Int?
+  contactId   Int?
+  companyId   Int
+  queueId     Int?
+
+  quotedMsg   Message? @relation("MessageQuotedMessages", fields: [quotedMsgId], references: [id])
+  ticket      Ticket?  @relation(fields: [ticketId], references: [id])
+  contact     Contact? @relation(fields: [contactId], references: [id])
+  company     Company  @relation(fields: [companyId], references: [id])
+  queue       Queue?   @relation(fields: [queueId], references: [id])
+
+  @@index([ticketId])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([queueId])
+  Message Message[] @relation("MessageQuotedMessages")
+}
+
+model Plan {
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  users             Int?
+  connections       Int?
+  queues            Int?
+  value             Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  useSchedules      Boolean
+  useCampaigns      Boolean
+  useInternalChat   Boolean
+  useExternalApi    Boolean
+  useKanban         Boolean
+  useOpenAi         Boolean
+  useIntegrations   Boolean
+
+  Company Company[]
+}
+
+model Prompt {
+  id                Int      @id @default(autoincrement())
+  name              String
+  prompt            String
+  apiKey            String
+  maxMessages       Int      @default(10)
+  maxTokens         Int      @default(100)
+  temperature       Int      @default(1)
+  promptTokens      Int      @default(0)
+  completionTokens  Int      @default(0)
+  totalTokens       Int      @default(0)
+  voice             String
+  voiceKey          String?
+  voiceRegion       String?
+  queueId           Int? @unique
+  companyId         Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  queue    Queue?   @relation(fields: [queueId], references: [id])
+  company  Company  @relation(fields: [companyId], references: [id])
+
+  Whatsapp Whatsapp[]
+
+  Ticket Ticket[]
+}
+
+model Queue {
+  id                Int                   @id @default(autoincrement())
+  name              String                @unique
+  color             String                @unique
+  greetingMessage   String                @default("")
+  outOfHoursMessage String                @default("")
+  schedules         Json?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  companyId         Int
+  orderQueue        Int
+
+  company           Company               @relation(fields: [companyId], references: [id])
+  whatsapps         Whatsapp[]            @relation("WhatsappQueues")
+  users             User[]                @relation("UserQueue")
+  options           QueueOption[]
+  queueIntegrations QueueIntegrations?    @relation(fields: [integrationId], references: [id])
+  prompt            Prompt[]
+
+  integrationId     Int?
+  promptId          Int?
+
+  UserQueue         UserQueue[]
+  WhatsappQueue     WhatsappQueue[]
+  Ticket            Ticket[]
+  Message           Message[]
+  Company           Company[]             @relation("QueueCompany")
+}
+
+model QueueIntegrations {
+  id                    Int       @id @default(autoincrement())
+  type                  String
+  name                  String
+  projectName           String
+  jsonContent           String?
+  language              String?
+  urlN8N                String?
+  companyId             Int
+  typebotSlug           String?
+  typebotExpires        Int?
+  typebotKeywordFinish  String?
+  typebotUnknownMessage String?
+  typebotDelayMessage   Int?
+  typebotKeywordRestart String?
+  typebotRestartMessage String?
+  createdAt             DateTime  @default(now()) @db.DateTime(6)
+  updatedAt             DateTime  @updatedAt @db.DateTime(6)
+  
+  company               Company   @relation(fields: [companyId], references: [id])
+  Ticket                Ticket[]
+  Queue                 Queue[]
+
+  @@unique([name, companyId])
+}
+
+model QueueOption {
+  id        Int          @id @default(autoincrement())
+  title     String
+  message   String?
+  option    String?
+  queueId   Int
+  parentId  Int?
+  createdAt DateTime     @default(now()) @db.DateTime(6)
+  updatedAt DateTime     @updatedAt @db.DateTime(6)
+
+  queue     Queue        @relation(fields: [queueId], references: [id])
+  parent    QueueOption? @relation("QueueOptionParent", fields: [parentId], references: [id])
+
+  @@index([queueId])
+  @@index([parentId])
+  Ticket Ticket[]
+  QueueOption QueueOption[] @relation("QueueOptionParent")
+}
+
+model QuickMessage {
+  id         Int       @id @default(autoincrement())
+  shortcode  String
+  message    String
+  mediaName  String?
+  mediaPath  String?
+  companyId  Int
+  userId     Int
+
+  createdAt  DateTime  @default(now()) @db.DateTime(6)
+  updatedAt  DateTime  @updatedAt @db.DateTime(6)
+  company    Company   @relation(fields: [companyId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@index([companyId])
+  @@index([userId])
+}
+
+model Rating {
+  id        Int       @id @default(autoincrement())
+  name      String
+  companyId Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  Company   Company   @relation(fields: [companyId], references: [id])
+}
+
+
+model Schedule {
+  id         Int       @id @default(autoincrement())
+  body       String    @db.Text
+  sendAt     DateTime
+  sentAt     DateTime?
+  status     String
+  mediaPath  String
+  mediaName  String
+  contactId  Int
+  ticketId   Int
+  userId     Int
+  companyId  Int
+  createdAt  DateTime  @default(now()) @db.DateTime(6)
+  updatedAt  DateTime  @updatedAt @db.DateTime(6)
+  contact    Contact   @relation(fields: [contactId], references: [id])
+  ticket     Ticket    @relation(fields: [ticketId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+  company    Company   @relation(fields: [companyId], references: [id])
+  
+  @@index([contactId])
+  @@index([ticketId])
+  @@index([userId])
+  @@index([companyId])
+}
+
+model Setting {
+  id         Int      @id @default(autoincrement())
+  key        String
+  value      String
+  createdAt  DateTime @default(now()) @db.DateTime(6)
+  updatedAt  DateTime @updatedAt @db.DateTime(6)
+
+  companyId  Int
+
+  company    Company @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, key])
+}
+
+model Subscription {
+  id                       Int      @id @default(autoincrement())
+  isActive                 Boolean
+  userPriceCents           Int?
+  whatsPriceCents          Int?
+  lastInvoiceUrl           String?
+  lastPlanChange           DateTime?
+  expiresAt                DateTime?
+  providerSubscriptionId   String?
+  companyId                Int
+
+  createdAt                DateTime @default(now()) @db.DateTime(6)
+  updatedAt                DateTime @updatedAt @db.DateTime(6)
+
+  company                  Company @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+}
+
+model Tag {
+  id          Int        @id @default(autoincrement())
+  name        String
+  color       String
+  companyId   Int
+  company     Company   @relation(fields: [companyId], references: [id])
+  kanban      Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  ticketTags TicketTag[]
+  tickets     Ticket[]   @relation("TicketTag")
+
+  @@index([companyId])
+}
+
+model Ticket {
+  id                     Int                   @id @default(autoincrement())
+  status                 String                @default("pending")
+  unreadMessages         Int?
+  lastMessage            String?
+  isGroup                Boolean               @default(false)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  userId                 Int
+  user                   User                  @relation(fields: [userId], references: [id])
+  contactId              Int
+  contact                Contact               @relation(fields: [contactId], references: [id])
+  whatsappId             Int
+  whatsapp               Whatsapp              @relation(fields: [whatsappId], references: [id])
+  queueId                Int
+  queue                  Queue                 @relation(fields: [queueId], references: [id])
+  chatbot                Boolean?
+  queueOptionId          Int
+  queueOption            QueueOption           @relation(fields: [queueOptionId], references: [id])
+  messages               Message[]
+  ticketTags             TicketTag[]
+  tags                   Tag[]                 @relation("TicketTag")
+  companyId              Int
+  company                Company               @relation(fields: [companyId], references: [id])
+  uuid                   String                @default(uuid())
+  useIntegration         Boolean?
+  integrationId          Int?
+  queueIntegration       QueueIntegrations?    @relation(fields: [integrationId], references: [id])
+  typebotSessionId       String?
+  typebotStatus          Boolean               @default(false)
+  promptId               Int?
+  prompt                 Prompt?               @relation(fields: [promptId], references: [id])
+  fromMe                 Boolean?
+  amountUsedBotQueues    Int                   @default(0)
+  isBot                  Boolean?
+  
+  @@index([companyId])
+  @@index([queueId])
+  @@index([whatsappId])
+  @@index([contactId])
+  UserRating UserRating[]
+  TicketTracking TicketTracking[]
+  TicketNote TicketNote[]
+  Schedule Schedule[]
+  Action_Logs Action_Logs[]
+}
+
+model TicketNote {
+  id          Int      @id @default(autoincrement())
+  note        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  contactId   Int
+  contact     Contact  @relation(fields: [contactId], references: [id])
+  ticketId    Int
+  ticket      Ticket   @relation(fields: [ticketId], references: [id])
+}
+
+model TicketTag {
+  ticketId Int
+  tagId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
+  tag      Tag    @relation(fields: [tagId], references: [id])
+
+  @@id([ticketId, tagId])
+}
+
+model TicketTracking {
+  id         Int      @id @default(autoincrement())
+  ticketId   Int
+  companyId  Int
+  whatsappId Int?
+  userId     Int?
+  rated      Boolean
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  startedAt  DateTime
+  queuedAt   DateTime
+  finishedAt DateTime?
+  closedAt   DateTime?
+  ratingAt   DateTime
+  chatbotAt  DateTime
+
+  // Relacionamentos
+  ticket     Ticket   @relation(fields: [ticketId], references: [id])
+  company    Company  @relation(fields: [companyId], references: [id])
+  whatsapp   Whatsapp? @relation(fields: [whatsappId], references: [id])
+  user       User?     @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id              Int            @id @default(autoincrement())
+  name            String
+  email           String         @unique
+  passwordHash    String
+  tokenVersion    Int            @default(0)
+  profile         String         @default("admin")
+  super           Boolean
+  online          Boolean
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  companyId       Int
+  company         Company        @relation(fields: [companyId], references: [id])
+  whatsappId      Int?
+  whatsapp        Whatsapp?      @relation(fields: [whatsappId], references: [id])
+
+  avatarUrl       String?
+
+  tickets         Ticket[]
+  queues          Queue[]        @relation("UserQueue")
+  quickMessages   QuickMessage[]
+
+  ChatUsers       ChatUser[]
+  UserQueue       UserQueue[]
+  UserRating      UserRating[]
+  TicketTracking  TicketTracking[]
+  TicketNote      TicketNote[]
+  Schedule        Schedule[]
+  ChatMessage     ChatMessage[]
+  Chat            Chat[]
+
+  Action_Logs Action_Logs[]
+}
+
+model UserQueue {
+  userId   Int
+  queueId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  queue    Queue    @relation(fields: [queueId], references: [id])
+
+  @@id([userId, queueId])
+}
+
+model UserRating {
+  id        Int       @id @default(autoincrement())
+  ticketId  Int
+  companyId Int
+  userId    Int
+  rate      Int
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  ticket    Ticket    @relation(fields: [ticketId], references: [id])
+  company   Company   @relation(fields: [companyId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model Whatsapp {
+  id                   Int                  @id @default(autoincrement())
+  name                 String?               @unique
+  session              String?
+  qrcode               String?
+  status               String?
+  battery              String?
+  plugged              Boolean?
+  retries              Int?
+  greetingMessage      String               @default("")
+  farewellMessage      String               @default("")
+  complationMessage    String               @default("")
+  outOfHoursMessage    String               @default("")
+  ratingMessage        String               @default("")
+  provider             String               @default("stable")
+  isDefault            Boolean?             @default(false)
+  token                String?
+  transferQueueId      Int?
+  timeToTransfer       Int?
+  maxUseBotQueues      Int?
+  timeUseBotQueues     String?
+  sendIdQueue          Int?
+  timeSendQueue        Int?
+  integrationId        Int?
+  expiresTicket        Int?
+  expiresInactiveMessage String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  tickets              Ticket[]
+  queues               Queue[]               @relation("WhatsappQueues")
+  whatsappQueues       WhatsappQueue[]
+  company              Company               @relation(fields: [companyId], references: [id])
+  companyId            Int
+  prompt               Prompt?               @relation(fields: [promptId], references: [id])
+  promptId             Int?
+
+  User User[]
+  TicketTracking TicketTracking[]
+  Contact Contact[]
+  Campaign Campaign[]
+  BaileysChats BaileysChats[]
+  Baileys Baileys[]
+}
+
+model WhatsappQueue {
+  whatsappId   Int
+  queueId      Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  whatsapp     Whatsapp @relation(fields: [whatsappId], references: [id])
+  queue        Queue    @relation(fields: [queueId], references: [id])
+
+  @@id([whatsappId, queueId])
+}
